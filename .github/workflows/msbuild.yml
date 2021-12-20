@@ -13,8 +13,10 @@ env:
 
 jobs:
   release:
+    runs-on: windows-latest
     steps:
       - name: Configure build for win32
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: win32
+
