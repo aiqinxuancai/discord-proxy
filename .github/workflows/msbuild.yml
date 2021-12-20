@@ -23,7 +23,8 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x86
-      - run: build
+      - name: nmake Build
+        run: nmake
       - name: Create a Release
         uses: ncipollo/release-action@v1
         with:
