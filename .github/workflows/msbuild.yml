@@ -15,8 +15,19 @@ jobs:
   release:
     runs-on: windows-latest
     steps:
+      - name: Install 7Zip PowerShell Module
+        shell: powershell
+        run: Install-Module 7Zip4PowerShell -Force -Verbose
+      - uses: actions/checkout@v2
       - name: Configure build for win32
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: win32
+      - name: Compress
+        run: powershell Compress-7Zip $env:GITHUB_WORKSPACE\Release -ArchiveFileName "Release.zip" -Format Zip
+      - name: Create a Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "Release.zip"
+          token: ${{ secrets.GITHUB_TOKEN }}
 
