@@ -22,7 +22,8 @@ jobs:
       - name: Configure build for win32
         uses: ilammy/msvc-dev-cmd@v1
         with:
-          arch: win32
+          arch: x86
+      - run: build
       - name: Create a Release
         uses: ncipollo/release-action@v1
         with:
