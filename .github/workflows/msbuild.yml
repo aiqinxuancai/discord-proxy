@@ -23,8 +23,10 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x86
-      - name: nmake Build
+      - name: build programs
         run: nmake
+        env:
+          ARCH_NAME: _x86
       - name: Create a Release
         uses: ncipollo/release-action@v1
         with:
