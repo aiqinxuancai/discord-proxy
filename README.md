@@ -9,10 +9,15 @@
 https://github.com/aiqinxuancai/discord-proxy/releases
 
 将version.dll放在Discord.exe所在目录（如Discord有更新，则可能需要重新放一下）
-<img src="./images/1.png" alt="ToukenBrowser">
+<p align="center" color="#6a737d">
+<img src="./images/1.png" alt="discord-proxy">
+</p>
+
 
 然后在桌面的快捷方式按照上次添加的代理地址
-<img src="./images/2.png" alt="ToukenBrowser">
+<p align="center" color="#6a737d">
+<img src="./images/2.png" alt="discord-proxy">
+</p>
 
 注意最前面有个空格，地址请根据自身情况调整
 ```
