@@ -88,7 +88,7 @@ namespace AheadLib
 
 
 	// 获取原始函数地址
-	FARPROC WINAPI GetAddress(PCSTR pszProcName)
+	FARPROC WINAPI GetAddress(PCSTR pszProcName, bool dontExit = false)
 	{
 		FARPROC fpAddress;
 		CHAR szProcName[16];
@@ -103,9 +103,11 @@ namespace AheadLib
 				pszProcName = szProcName;
 			}
 
-			wsprintf(tzTemp, TEXT("无法找到函数 %hs，程序无法正常运行。"), pszProcName);
-			MessageBox(NULL, tzTemp, TEXT("AheadLib"), MB_ICONSTOP);
-			ExitProcess(-2);
+			if (!dontExit) {
+				wsprintf(tzTemp, TEXT("无法找到函数 %hs，程序无法正常运行。"), pszProcName);
+				MessageBox(NULL, tzTemp, TEXT("AheadLib"), MB_ICONSTOP);
+				ExitProcess(-2);
+			}
 		}
 
 		return fpAddress;
@@ -116,10 +118,10 @@ namespace AheadLib
 	{
 		pfnGetFileVersionInfoA = GetAddress("GetFileVersionInfoA");
 		pfnGetFileVersionInfoByHandle = GetAddress("GetFileVersionInfoByHandle");
-		pfnGetFileVersionInfoExA = GetAddress("GetFileVersionInfoExA");
+		pfnGetFileVersionInfoExA = GetAddress("GetFileVersionInfoExA", true); //win7下没有
 		pfnGetFileVersionInfoExW = GetAddress("GetFileVersionInfoExW");
 		pfnGetFileVersionInfoSizeA = GetAddress("GetFileVersionInfoSizeA");
-		pfnGetFileVersionInfoSizeExA = GetAddress("GetFileVersionInfoSizeExA");
+		pfnGetFileVersionInfoSizeExA = GetAddress("GetFileVersionInfoSizeExA", true); //win7下没有
 		pfnGetFileVersionInfoSizeExW = GetAddress("GetFileVersionInfoSizeExW");
 		pfnGetFileVersionInfoSizeW = GetAddress("GetFileVersionInfoSizeW");
 		pfnGetFileVersionInfoW = GetAddress("GetFileVersionInfoW");
@@ -131,6 +133,25 @@ namespace AheadLib
 		pfnVerLanguageNameW = GetAddress("VerLanguageNameW");
 		pfnVerQueryValueA = GetAddress("VerQueryValueA");
 		pfnVerQueryValueW = GetAddress("VerQueryValueW");
+
+		//GetFileVersionInfoA=FakeGetFileVersionInfoA @1
+		//GetFileVersionInfoByHandle = FakeGetFileVersionInfoByHandle @2
+		//GetFileVersionInfoExA
+		//GetFileVersionInfoExW = FakeGetFileVersionInfoExW @3
+		//GetFileVersionInfoSizeA = FakeGetFileVersionInfoSizeA @4
+		//GetFileVersionInfoSizeExA
+		//GetFileVersionInfoSizeExW = FakeGetFileVersionInfoSizeExW @5
+		//GetFileVersionInfoSizeW = FakeGetFileVersionInfoSizeW @6
+		//GetFileVersionInfoW = FakeGetFileVersionInfoW @7
+		//VerFindFileA = FakeVerFindFileA @8
+		//VerFindFileW = FakeVerFindFileW @9
+		//VerInstallFileA = FakeVerInstallFileA @10
+		//VerInstallFileW = FakeVerInstallFileW @11
+		//VerLanguageNameA = FakeVerLanguageNameA @12
+		//VerLanguageNameW = FakeVerLanguageNameW @13
+		//VerQueryValueA = FakeVerQueryValueA @14
+		//VerQueryValueW = FakeVerQueryValueW @15
+
 	}
 
 	// 加载原始模块
