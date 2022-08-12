@@ -256,7 +256,7 @@ BOOL WINAPI MyCreateProcessW(
 		std::string::size_type proxyServerIdx = cmd.find(L"--proxy-server");
 		if (proxyServerIdx == std::string::npos) {
 			//Ìí¼Ó²ÎÊý
-			cmd.append(L" --proxy-server==");
+			cmd.append(L" --proxy-server=");
 			cmd.append(_proxy);
 			return pMyCreateProcessW(lpApplicationName, (LPWSTR)cmd.c_str(), lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);;
 		}

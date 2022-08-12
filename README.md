@@ -23,7 +23,7 @@ https://github.com/aiqinxuancai/discord-proxy/releases
 
 注意最前面有个空格，地址请根据自身情况调整
 ```
- --a=--proxy-server=http://127.0.0.1:1081
+ --proxy-server=http://127.0.0.1:1081
 ```
 如此就设置完毕了，使用桌面快捷方式运行即可。
 
