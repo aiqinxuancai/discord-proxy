@@ -28,9 +28,15 @@ https://github.com/aiqinxuancai/discord-proxy/releases
 如此就设置完毕了，使用桌面快捷方式运行即可。
 
 ---
-### **如果你过了更新后卡住，请注意快捷方式是否正确：**
+### **如果你还是进不去，请看这里：**
 
+#### **检查快捷方式对不对**
 上面所说的桌面快捷方式为安装时自动创建的快捷方式，目标指向是**Update.exe**，而非自行从Discord.exe所创建的，修改完毕后的完整命令行样例：
 ```
 C:\Users\xxxxxx\AppData\Local\Discord\Update.exe --processStart Discord.exe --a=--proxy-server=http://127.0.0.1:1081
 ```
+#### **注意代理规则**
+如果用的**clash代理**，请注意下代理规则，检查discord相关域名流量是否通过代理，v2、ss、ssr为指定端口全代所以不用另外做什么。
+
+#### **不支持Socks代理**
+目前不支持Socks代理，请使用http代理。
