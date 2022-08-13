@@ -16,7 +16,7 @@ https://github.com/aiqinxuancai/discord-proxy/releases
 </p>
 
 
-然后在桌面的快捷方式按照上次添加的代理地址
+然后在桌面的快捷方式按照上次添加的代理地址（Discord安装时自动创建的那个快捷方式，不要自行从Disocrd.exe创建，具体请见底部）
 <p align="center" color="#6a737d">
 <img src="./images/2.png" alt="discord-proxy">
 </p>
@@ -27,4 +27,10 @@ https://github.com/aiqinxuancai/discord-proxy/releases
 ```
 如此就设置完毕了，使用桌面快捷方式运行即可。
 
+---
+### **如果你过了更新后卡住，请注意快捷方式是否正确：**
 
+上面所说的桌面快捷方式为安装时自动创建的快捷方式，目标指向是**Update.exe**，而非自行从Discord.exe所创建的，修改完毕后的完整命令行样例：
+```
+C:\Users\xxxxxx\AppData\Local\Discord\Update.exe --processStart Discord.exe --a=--proxy-server=http://127.0.0.1:1081
+```
