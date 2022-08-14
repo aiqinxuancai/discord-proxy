@@ -39,4 +39,4 @@ C:\Users\xxxxxx\AppData\Local\Discord\Update.exe --processStart Discord.exe --a=
 如果用的**clash代理**，请注意下代理规则，检查discord相关域名流量是否通过代理，v2、ss、ssr为指定端口全代所以不用另外做什么。
 
 #### **不支持Socks代理**
-目前不支持Socks代理，请使用http代理。
+目前不支持socks代理，请使用http代理，如果实在是需要，可以用此项目将socks代理转为http代理：https://github.com/ginuerzh/gost。
