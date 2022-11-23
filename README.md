@@ -16,7 +16,7 @@ https://github.com/aiqinxuancai/discord-proxy/releases
 </p>
 
 
-然后在桌面的快捷方式按照上次添加的代理地址（Discord安装时自动创建的那个快捷方式，不要自行从Disocrd.exe创建，具体请见底部）
+然后在桌面的快捷方式按照上次添加的代理地址（Discord安装时自动创建的那个快捷方式，不要自行从Discord.exe创建，具体请见底部）
 <p align="center" color="#6a737d">
 <img src="./images/2.png" alt="discord-proxy">
 </p>
