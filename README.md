@@ -1,5 +1,7 @@
 # discord-proxy
 
+<img src="https://visitor-badge.glitch.me/badge?page_id=github-discord-proxy" alt="visitor badge"/>
+
 上篇文章中的方法已经失效了很久，也时不时有人问是否有别的设置方法，看了一圈，发现并没有比较独立的设置代理的方案，最简单的是设置系统环境变量来实现updater.node的代理，但是这个设置会影响所有系统的控制台程序。
 
 所以我就自己实现了一个DLL劫持方案。
