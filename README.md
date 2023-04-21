@@ -9,7 +9,11 @@
 简单来说原理是version.dll会在Discord.exe启动时跟随加载，读取并存储命令行中的代理地址(http....)，并且拦截Discord的updater.node模块读取环境变量的操作，将命令行中的代理地址直接返回，这样就无需修改系统的环境变量。
 
 ## 开始使用
-方法非常简单，在此下载release.zip并解压version.dll
+
+方法一：使用此项目自动添加version.dll并启动（**实验**）
+https://github.com/aiqinxuancai/DiscordProxyStart
+
+方法二：在此下载release.zip并解压version.dll
 https://github.com/aiqinxuancai/discord-proxy/releases
 
 将version.dll放在Discord.exe所在目录（如Discord有更新，则可能需要重新放一下）
