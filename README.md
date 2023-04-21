@@ -10,10 +10,8 @@
 
 ## 开始使用
 
-方法一：使用此项目自动添加version.dll并启动（**实验**）
-https://github.com/aiqinxuancai/DiscordProxyStart
+**方法一**：手动下载release.zip并解压version.dll
 
-方法二：在此下载release.zip并解压version.dll
 https://github.com/aiqinxuancai/discord-proxy/releases
 
 将version.dll放在Discord.exe所在目录（如Discord有更新，则可能需要重新放一下）
@@ -33,7 +31,14 @@ https://github.com/aiqinxuancai/discord-proxy/releases
 ```
 如此就设置完毕了，使用桌面快捷方式运行即可。
 
+**方法二**：使用此项目自动复制version.dll并启动Discord（**实验**）
+
+[https://github.com/aiqinxuancai/DiscordProxyStart](https://github.com/aiqinxuancai/DiscordProxyStart)
+
+下载：[Release](https://github.com/aiqinxuancai/DiscordProxyStart/releases)
+
 ---
+
 ### **如果你还是进不去，请看这里：**
 
 #### **检查快捷方式对不对**
