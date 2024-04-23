@@ -7,18 +7,36 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #include <stdio.h>
 
-#include "include/detours.h"
+#include <detver.h>
+#include <detours.h>
 
-#if _WIN64
-#pragma comment(lib, "./lib.X64/detours.lib")
-#else 
-#pragma comment(lib, "./lib.X86/detours.lib")
-#endif
 #include <string>
 #include <vector>
 #include <stdexcept>
 #include <regex>
 
+
+#if _WIN64
+extern "C" {
+	FARPROC g_GetFileVersionInfoA;
+	FARPROC g_GetFileVersionInfoByHandle;
+	FARPROC g_GetFileVersionInfoExA;
+	FARPROC g_GetFileVersionInfoExW;
+	FARPROC g_GetFileVersionInfoSizeA;
+	FARPROC g_GetFileVersionInfoSizeExA;
+	FARPROC g_GetFileVersionInfoSizeExW;
+	FARPROC g_GetFileVersionInfoSizeW;
+	FARPROC g_GetFileVersionInfoW;
+	FARPROC g_VerFindFileA;
+	FARPROC g_VerFindFileW;
+	FARPROC g_VerInstallFileA;
+	FARPROC g_VerInstallFileW;
+	FARPROC g_VerLanguageNameA;
+	FARPROC g_VerLanguageNameW;
+	FARPROC g_VerQueryValueA;
+	FARPROC g_VerQueryValueW;
+}
+#else 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 导出函数
 #pragma comment(linker, "/EXPORT:GetFileVersionInfoA=_AheadLib_GetFileVersionInfoA,@1")
@@ -44,26 +62,24 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 原函数地址指针
-PVOID pfnGetFileVersionInfoA;
-PVOID pfnGetFileVersionInfoByHandle;
-PVOID pfnGetFileVersionInfoExA;
-PVOID pfnGetFileVersionInfoExW;
-PVOID pfnGetFileVersionInfoSizeA;
-PVOID pfnGetFileVersionInfoSizeExA;
-PVOID pfnGetFileVersionInfoSizeExW;
-PVOID pfnGetFileVersionInfoSizeW;
-PVOID pfnGetFileVersionInfoW;
-PVOID pfnVerFindFileA;
-PVOID pfnVerFindFileW;
-PVOID pfnVerInstallFileA;
-PVOID pfnVerInstallFileW;
-PVOID pfnVerLanguageNameA;
-PVOID pfnVerLanguageNameW;
-PVOID pfnVerQueryValueA;
-PVOID pfnVerQueryValueW;
+PVOID g_GetFileVersionInfoA;
+PVOID g_GetFileVersionInfoByHandle;
+PVOID g_GetFileVersionInfoExA;
+PVOID g_GetFileVersionInfoExW;
+PVOID g_GetFileVersionInfoSizeA;
+PVOID g_GetFileVersionInfoSizeExA;
+PVOID g_GetFileVersionInfoSizeExW;
+PVOID g_GetFileVersionInfoSizeW;
+PVOID g_GetFileVersionInfoW;
+PVOID g_VerFindFileA;
+PVOID g_VerFindFileW;
+PVOID g_VerInstallFileA;
+PVOID g_VerInstallFileW;
+PVOID g_VerLanguageNameA;
+PVOID g_VerLanguageNameW;
+PVOID g_VerQueryValueA;
+PVOID g_VerQueryValueW;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 宏定义
@@ -76,6 +92,10 @@ PVOID pfnVerQueryValueW;
 #define ALCFAST EXTERNC EXPORT NAKED void __fastcall
 #define ALCDECL EXTERNC NAKED void __cdecl
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#endif
+
+
 
 
 
@@ -116,23 +136,23 @@ namespace AheadLib
 	// 初始化原始函数地址指针
 	inline VOID WINAPI InitializeAddresses()
 	{
-		pfnGetFileVersionInfoA = GetAddress("GetFileVersionInfoA");
-		pfnGetFileVersionInfoByHandle = GetAddress("GetFileVersionInfoByHandle");
-		pfnGetFileVersionInfoExA = GetAddress("GetFileVersionInfoExA", true); //win7下没有
-		pfnGetFileVersionInfoExW = GetAddress("GetFileVersionInfoExW");
-		pfnGetFileVersionInfoSizeA = GetAddress("GetFileVersionInfoSizeA");
-		pfnGetFileVersionInfoSizeExA = GetAddress("GetFileVersionInfoSizeExA", true); //win7下没有
-		pfnGetFileVersionInfoSizeExW = GetAddress("GetFileVersionInfoSizeExW");
-		pfnGetFileVersionInfoSizeW = GetAddress("GetFileVersionInfoSizeW");
-		pfnGetFileVersionInfoW = GetAddress("GetFileVersionInfoW");
-		pfnVerFindFileA = GetAddress("VerFindFileA");
-		pfnVerFindFileW = GetAddress("VerFindFileW");
-		pfnVerInstallFileA = GetAddress("VerInstallFileA");
-		pfnVerInstallFileW = GetAddress("VerInstallFileW");
-		pfnVerLanguageNameA = GetAddress("VerLanguageNameA");
-		pfnVerLanguageNameW = GetAddress("VerLanguageNameW");
-		pfnVerQueryValueA = GetAddress("VerQueryValueA");
-		pfnVerQueryValueW = GetAddress("VerQueryValueW");
+		g_GetFileVersionInfoA = GetAddress("GetFileVersionInfoA");
+		g_GetFileVersionInfoByHandle = GetAddress("GetFileVersionInfoByHandle");
+		g_GetFileVersionInfoExA = GetAddress("GetFileVersionInfoExA", true); //win7下没有
+		g_GetFileVersionInfoExW = GetAddress("GetFileVersionInfoExW");
+		g_GetFileVersionInfoSizeA = GetAddress("GetFileVersionInfoSizeA");
+		g_GetFileVersionInfoSizeExA = GetAddress("GetFileVersionInfoSizeExA", true); //win7下没有
+		g_GetFileVersionInfoSizeExW = GetAddress("GetFileVersionInfoSizeExW");
+		g_GetFileVersionInfoSizeW = GetAddress("GetFileVersionInfoSizeW");
+		g_GetFileVersionInfoW = GetAddress("GetFileVersionInfoW");
+		g_VerFindFileA = GetAddress("VerFindFileA");
+		g_VerFindFileW = GetAddress("VerFindFileW");
+		g_VerInstallFileA = GetAddress("VerInstallFileA");
+		g_VerInstallFileW = GetAddress("VerInstallFileW");
+		g_VerLanguageNameA = GetAddress("VerLanguageNameA");
+		g_VerLanguageNameW = GetAddress("VerLanguageNameW");
+		g_VerQueryValueA = GetAddress("VerQueryValueA");
+		g_VerQueryValueW = GetAddress("VerQueryValueW");
 
 		//GetFileVersionInfoA=FakeGetFileVersionInfoA @1
 		//GetFileVersionInfoByHandle = FakeGetFileVersionInfoByHandle @2
@@ -369,13 +389,12 @@ BOOL WINAPI DllMain(HMODULE hModule, DWORD dwReason, PVOID pvReserved)
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-
+#if !_WIN64
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 导出函数
 ALCDECL AheadLib_GetFileVersionInfoA(void)
 {
-	__asm JMP pfnGetFileVersionInfoA;
+	__asm JMP g_GetFileVersionInfoA;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -385,7 +404,7 @@ ALCDECL AheadLib_GetFileVersionInfoA(void)
 // 导出函数
 ALCDECL AheadLib_GetFileVersionInfoByHandle(void)
 {
-	__asm JMP pfnGetFileVersionInfoByHandle;
+	__asm JMP g_GetFileVersionInfoByHandle;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -395,7 +414,7 @@ ALCDECL AheadLib_GetFileVersionInfoByHandle(void)
 // 导出函数
 ALCDECL AheadLib_GetFileVersionInfoExA(void)
 {
-	__asm JMP pfnGetFileVersionInfoExA;
+	__asm JMP g_GetFileVersionInfoExA;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -405,7 +424,7 @@ ALCDECL AheadLib_GetFileVersionInfoExA(void)
 // 导出函数
 ALCDECL AheadLib_GetFileVersionInfoExW(void)
 {
-	__asm JMP pfnGetFileVersionInfoExW;
+	__asm JMP g_GetFileVersionInfoExW;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -415,7 +434,7 @@ ALCDECL AheadLib_GetFileVersionInfoExW(void)
 // 导出函数
 ALCDECL AheadLib_GetFileVersionInfoSizeA(void)
 {
-	__asm JMP pfnGetFileVersionInfoSizeA;
+	__asm JMP g_GetFileVersionInfoSizeA;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -425,7 +444,7 @@ ALCDECL AheadLib_GetFileVersionInfoSizeA(void)
 // 导出函数
 ALCDECL AheadLib_GetFileVersionInfoSizeExA(void)
 {
-	__asm JMP pfnGetFileVersionInfoSizeExA;
+	__asm JMP g_GetFileVersionInfoSizeExA;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -435,7 +454,7 @@ ALCDECL AheadLib_GetFileVersionInfoSizeExA(void)
 // 导出函数
 ALCDECL AheadLib_GetFileVersionInfoSizeExW(void)
 {
-	__asm JMP pfnGetFileVersionInfoSizeExW;
+	__asm JMP g_GetFileVersionInfoSizeExW;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -445,7 +464,7 @@ ALCDECL AheadLib_GetFileVersionInfoSizeExW(void)
 // 导出函数
 ALCDECL AheadLib_GetFileVersionInfoSizeW(void)
 {
-	__asm JMP pfnGetFileVersionInfoSizeW;
+	__asm JMP g_GetFileVersionInfoSizeW;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -455,7 +474,7 @@ ALCDECL AheadLib_GetFileVersionInfoSizeW(void)
 // 导出函数
 ALCDECL AheadLib_GetFileVersionInfoW(void)
 {
-	__asm JMP pfnGetFileVersionInfoW;
+	__asm JMP g_GetFileVersionInfoW;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -465,7 +484,7 @@ ALCDECL AheadLib_GetFileVersionInfoW(void)
 // 导出函数
 ALCDECL AheadLib_VerFindFileA(void)
 {
-	__asm JMP pfnVerFindFileA;
+	__asm JMP g_VerFindFileA;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -475,7 +494,7 @@ ALCDECL AheadLib_VerFindFileA(void)
 // 导出函数
 ALCDECL AheadLib_VerFindFileW(void)
 {
-	__asm JMP pfnVerFindFileW;
+	__asm JMP g_VerFindFileW;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -485,7 +504,7 @@ ALCDECL AheadLib_VerFindFileW(void)
 // 导出函数
 ALCDECL AheadLib_VerInstallFileA(void)
 {
-	__asm JMP pfnVerInstallFileA;
+	__asm JMP g_VerInstallFileA;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -495,7 +514,7 @@ ALCDECL AheadLib_VerInstallFileA(void)
 // 导出函数
 ALCDECL AheadLib_VerInstallFileW(void)
 {
-	__asm JMP pfnVerInstallFileW;
+	__asm JMP g_VerInstallFileW;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -505,7 +524,7 @@ ALCDECL AheadLib_VerInstallFileW(void)
 // 导出函数
 ALCDECL AheadLib_VerLanguageNameA(void)
 {
-	__asm JMP pfnVerLanguageNameA;
+	__asm JMP g_VerLanguageNameA;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -515,7 +534,7 @@ ALCDECL AheadLib_VerLanguageNameA(void)
 // 导出函数
 ALCDECL AheadLib_VerLanguageNameW(void)
 {
-	__asm JMP pfnVerLanguageNameW;
+	__asm JMP g_VerLanguageNameW;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -525,7 +544,7 @@ ALCDECL AheadLib_VerLanguageNameW(void)
 // 导出函数
 ALCDECL AheadLib_VerQueryValueA(void)
 {
-	__asm JMP pfnVerQueryValueA;
+	__asm JMP g_VerQueryValueA;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -535,6 +554,9 @@ ALCDECL AheadLib_VerQueryValueA(void)
 // 导出函数
 ALCDECL AheadLib_VerQueryValueW(void)
 {
-	__asm JMP pfnVerQueryValueW;
+	__asm JMP g_VerQueryValueW;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#endif
+
+

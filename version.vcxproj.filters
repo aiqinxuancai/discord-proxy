@@ -19,4 +19,12 @@
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="version.asm">
+      <Filter>Source</Filter>
+    </None>
+    <None Include="Source.def">
+      <Filter>Source</Filter>
+    </None>
+  </ItemGroup>
 </Project>

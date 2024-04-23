@@ -1,0 +1,20 @@
+LIBRARY
+EXPORTS
+
+GetFileVersionInfoA=FakeGetFileVersionInfoA @1
+GetFileVersionInfoByHandle=FakeGetFileVersionInfoByHandle @2
+GetFileVersionInfoExA=FakeGetFileVersionInfoExA @3
+GetFileVersionInfoExW=FakeGetFileVersionInfoExW @4
+GetFileVersionInfoSizeA=FakeGetFileVersionInfoSizeA @5
+GetFileVersionInfoSizeExA=FakeGetFileVersionInfoSizeExA @6
+GetFileVersionInfoSizeExW=FakeGetFileVersionInfoSizeExW @7
+GetFileVersionInfoSizeW=FakeGetFileVersionInfoSizeW @8
+GetFileVersionInfoW=FakeGetFileVersionInfoW @9
+VerFindFileA=FakeVerFindFileA @10
+VerFindFileW=FakeVerFindFileW @11
+VerInstallFileA=FakeVerInstallFileA @12
+VerInstallFileW=FakeVerInstallFileW @13
+VerLanguageNameA=FakeVerLanguageNameA @14
+VerLanguageNameW=FakeVerLanguageNameW @15
+VerQueryValueA=FakeVerQueryValueA @16
+VerQueryValueW=FakeVerQueryValueW @17
