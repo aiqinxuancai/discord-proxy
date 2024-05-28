@@ -1,16 +1,20 @@
 # discord-proxy
 
-<img src="https://visitor-badge.glitch.me/badge?page_id=github-discord-proxy" alt="visitor badge"/>
+本项目不提供可供连接Discord的代理地址，仅解决Discord必须全局代理的问题，实现可以单独设置代理。
 
-上篇文章中的方法已经失效了很久，也时不时有人问是否有别的设置方法，看了一圈，发现并没有比较独立的设置代理的方案，最简单的是设置系统环境变量来实现updater.node的代理，但是这个设置会影响所有系统的控制台程序。
-
-所以我就自己实现了一个DLL劫持方案。
-
-简单来说原理是version.dll会在Discord.exe启动时跟随加载，读取并存储命令行中的代理地址(http....)，并且拦截Discord的updater.node模块读取环境变量的操作，将命令行中的代理地址直接返回，这样就无需修改系统的环境变量。
+原理是version.dll会在Discord.exe启动时跟随加载，读取并存储命令行中的代理地址(http....)，并且拦截Discord的updater.node模块读取环境变量的操作，将命令行中的代理地址直接返回，这样就无需修改系统的环境变量。
 
 ## 开始使用
 
-**方法一**：手动下载release.zip并解压version.dll
+### 方法1
+使用项目[DiscordProxyStart](https://github.com/aiqinxuancai/DiscordProxyStart)自动复制version.dll并启动Discord（**实验**）
+
+下载：[Release](https://github.com/aiqinxuancai/DiscordProxyStart/releases)
+
+---
+
+### 方法2
+手动下载release.zip并解压version.dll
 
 https://github.com/aiqinxuancai/discord-proxy/releases
 
@@ -31,11 +35,7 @@ https://github.com/aiqinxuancai/discord-proxy/releases
 ```
 如此就设置完毕了，使用桌面快捷方式运行即可。
 
-**方法二**：使用此项目自动复制version.dll并启动Discord（**实验**）
 
-[https://github.com/aiqinxuancai/DiscordProxyStart](https://github.com/aiqinxuancai/DiscordProxyStart)
-
-下载：[Release](https://github.com/aiqinxuancai/DiscordProxyStart/releases)
 
 ---
 
