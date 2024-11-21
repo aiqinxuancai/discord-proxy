@@ -287,8 +287,10 @@ BOOL WINAPI MyCreateProcessW(
 
 	auto cmd = std::wstring(lpCommandLine);
 	std::string::size_type idx = cmd.find(L"\\Discord.exe");
+	std::string::size_type canaryIdx = cmd.find(L"\\DiscordCanary.exe");
+	
 
-	if (g_hasProxy && idx != std::string::npos) {
+	if (g_hasProxy && (idx != std::string::npos || canaryIdx != std::string::npos)) {
 		std::string::size_type proxyServerIdx = cmd.find(L"--proxy-server");
 		if (proxyServerIdx == std::string::npos) {
 			//Ìí¼Ó²ÎÊý
