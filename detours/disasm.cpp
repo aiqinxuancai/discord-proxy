@@ -2898,7 +2898,7 @@ BYTE CDetourDis::CopyMiscellaneous16(BYTE* pSource, BYTE* pDest)
             return sizeof(USHORT); // The source instruction was 16 bits
         }
 
-        // If that fails, re-encode with 'conditional branch' logic, without using the condition flags
+        // If that fails, re-Encode with 'conditional branch' logic, without using the condition flags
         // For example, cbz r2,+0x56 (0x90432) becomes:
         //
         //  001df73a b92a     cbnz        r2,001df748
@@ -2959,7 +2959,7 @@ BYTE CDetourDis::CopyConditionalBranchOrOther16(BYTE* pSource, BYTE* pDest)
             return sizeof(USHORT); // The source instruction was 16 bits
         }
 
-        // If that fails, re-encode as a sequence of branches
+        // If that fails, re-Encode as a sequence of branches
         // For example, bne +0x6E (0x90452) becomes:
         //
         // 001df758 d100     bne         001df75c
@@ -2978,13 +2978,13 @@ BYTE CDetourDis::CopyConditionalBranchOrOther16(BYTE* pSource, BYTE* pDest)
         *pDstInst++ = newInstruction;
 
         // Next, prepare to insert an unconditional branch that will be hit if the condition above is not met.  This branch will branch over the following 'long branch'
-        // We can't actually encode this branch yet though, because 'long branches' can vary in size
+        // We can't actually Encode this branch yet though, because 'long branches' can vary in size
         PUSHORT pUnconditionalBranchInstruction = pDstInst++;
 
         // Then, emit a 'long branch' that will be hit if the original condition is met
         BYTE longBranchSize = EmitLongBranch(pDstInst, pTarget);
 
-        // Finally, encode and emit the unconditional branch that will be used to branch past the 'long branch' if the initial condition was not met
+        // Finally, Encode and emit the unconditional branch that will be used to branch past the 'long branch' if the initial condition was not met
         Branch11 branch11 = { 0x00, 0x1C };
         newInstruction = EncodeBranch11(*(DWORD*)(&branch11), longBranchSize - c_PCAdjust + sizeof(USHORT));
         ASSERT(newInstruction);
@@ -3014,7 +3014,7 @@ BYTE CDetourDis::CopyUnConditionalBranch16(BYTE* pSource, BYTE* pDest)
         return sizeof(USHORT); // The source instruction was 16 bits
     }
 
-    // If that fails, re-encode as 32-bit
+    // If that fails, re-Encode as 32-bit
     PUSHORT pDstInst = (PUSHORT)(pDest);
     instruction = EncodeBranch24(0xf0009000, newDelta, FALSE);
     if (instruction) {
@@ -3050,7 +3050,7 @@ BYTE CDetourDis::CopyLiteralLoad16(BYTE* pSource, BYTE* pDest)
     LONG oldDelta = DecodeLiteralLoad8(instruction);
     PBYTE pTarget = CalculateTarget(Align4(pSource), oldDelta);
 
-    // Re-encode as a 'long literal load'
+    // Re-Encode as a 'long literal load'
     // For example, ldr r0, [PC + 1E0] (0x905B4) becomes:
     //
     // 001df72c f85f0008 ldr         r0,=0x905B4
@@ -3164,7 +3164,7 @@ BYTE CDetourDis::CopyBranch24(BYTE* pSource, BYTE* pDest)
     PBYTE pTarget = CalculateTarget(pSource, oldDelta);
     m_pbTarget = pTarget;
 
-    // Re-encode as 32-bit
+    // Re-Encode as 32-bit
     PUSHORT pDstInst = (PUSHORT)(pDest);
     LONG newDelta = CalculateNewDelta(pTarget, pDest);
     instruction = EncodeBranch24(instruction, newDelta, fLink);
@@ -3174,7 +3174,7 @@ BYTE CDetourDis::CopyBranch24(BYTE* pSource, BYTE* pDest)
         return sizeof(DWORD);
     }
 
-    // If that fails, re-encode as a 'long branch'
+    // If that fails, re-Encode as a 'long branch'
     EmitLongBranch(pDstInst, pTarget);
 
     // Compute the extra space needed for the instruction
@@ -3190,7 +3190,7 @@ BYTE CDetourDis::CopyBranchOrMiscellaneous32(BYTE* pSource, BYTE* pDest)
         PBYTE pTarget = CalculateTarget(pSource, oldDelta);
         m_pbTarget = pTarget;
 
-        // Re-encode as 32-bit
+        // Re-Encode as 32-bit
         PUSHORT pDstInst = (PUSHORT)(pDest);
         LONG newDelta = CalculateNewDelta(pTarget, pDest);
         instruction = EncodeBranch20(instruction, newDelta);
@@ -3200,7 +3200,7 @@ BYTE CDetourDis::CopyBranchOrMiscellaneous32(BYTE* pSource, BYTE* pDest)
             return sizeof(DWORD);
         }
 
-        // If that fails, re-encode as a sequence of branches
+        // If that fails, re-Encode as a sequence of branches
         // For example, bls.w +0x86 (00090480)| becomes:
         //
         // 001df788 f2408001 bls.w       001df78e
@@ -3222,14 +3222,14 @@ BYTE CDetourDis::CopyBranchOrMiscellaneous32(BYTE* pSource, BYTE* pDest)
         // Next, prepare to insert an unconditional branch that will be hit
         // if the condition above is not met.  This branch will branch over
         // the following 'long branch'
-        // We can't actually encode this branch yet though, because
+        // We can't actually Encode this branch yet though, because
         // 'long branches' can vary in size
         PUSHORT pUnconditionalBranchInstruction = pDstInst++;
 
         // Then, emit a 'long branch' that will be hit if the original condition is met
         BYTE longBranchSize = EmitLongBranch(pDstInst, pTarget);
 
-        // Finally, encode and emit the unconditional branch that will be used
+        // Finally, Encode and emit the unconditional branch that will be used
         // to branch past the 'long branch' if the initial condition was not met
         Branch11 branch11 = { 0x00, 0x1C };
         instruction = EncodeBranch11(*(DWORD*)(&branch11), longBranchSize - c_PCAdjust + sizeof(USHORT));

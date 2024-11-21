@@ -3,6 +3,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // 头文件
+#include <WinSock2.h>
 #include <Windows.h>
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #include <stdio.h>
@@ -14,7 +15,14 @@
 #include <vector>
 #include <stdexcept>
 #include <regex>
+#include <map>
+#include "socket_manager.h"
+#include "proxy_info.h"
+#include "encoding_utils.h"
+#include "base64.h"
+#include "log_utils.h"
 
+#pragma comment(lib, "ws2_32.lib")
 
 #if _WIN64
 extern "C" {
@@ -100,7 +108,6 @@ PVOID g_VerQueryValueW;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// AheadLib 命名空间
 namespace AheadLib
 {
 	HMODULE m_hModule = NULL;	// 原始模块句柄
@@ -153,25 +160,6 @@ namespace AheadLib
 		g_VerLanguageNameW = GetAddress("VerLanguageNameW");
 		g_VerQueryValueA = GetAddress("VerQueryValueA");
 		g_VerQueryValueW = GetAddress("VerQueryValueW");
-
-		//GetFileVersionInfoA=FakeGetFileVersionInfoA @1
-		//GetFileVersionInfoByHandle = FakeGetFileVersionInfoByHandle @2
-		//GetFileVersionInfoExA
-		//GetFileVersionInfoExW = FakeGetFileVersionInfoExW @3
-		//GetFileVersionInfoSizeA = FakeGetFileVersionInfoSizeA @4
-		//GetFileVersionInfoSizeExA
-		//GetFileVersionInfoSizeExW = FakeGetFileVersionInfoSizeExW @5
-		//GetFileVersionInfoSizeW = FakeGetFileVersionInfoSizeW @6
-		//GetFileVersionInfoW = FakeGetFileVersionInfoW @7
-		//VerFindFileA = FakeVerFindFileA @8
-		//VerFindFileW = FakeVerFindFileW @9
-		//VerInstallFileA = FakeVerInstallFileA @10
-		//VerInstallFileW = FakeVerInstallFileW @11
-		//VerLanguageNameA = FakeVerLanguageNameA @12
-		//VerLanguageNameW = FakeVerLanguageNameW @13
-		//VerQueryValueA = FakeVerQueryValueA @14
-		//VerQueryValueW = FakeVerQueryValueW @15
-
 	}
 
 	// 加载原始模块
@@ -208,41 +196,38 @@ namespace AheadLib
 using namespace AheadLib;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-wchar_t _proxy[512];
-bool _hasProxy;
+static HMODULE(WINAPI* pMyGetModuleHandleW)(LPCWSTR lpModuleName) = GetModuleHandleW;
+static HMODULE(WINAPI* pMyLoadLibraryW)(LPCWSTR lpLibFileName) = LoadLibraryW;
+static HMODULE(WINAPI* pMyLoadLibraryExW)(LPCWSTR lpLibFileName, HANDLE hFile, DWORD dwFlags) = LoadLibraryExW;
 
-static DWORD(WINAPI* pMyGetEnvironmentVariableW)(
-	LPCWSTR lpName,
-	LPWSTR lpBuffer,
-	DWORD nSize
-	) = GetEnvironmentVariableW;
+static DWORD(WINAPI* pMyGetEnvironmentVariableW)(LPCWSTR lpName,LPWSTR lpBuffer,DWORD nSize) = GetEnvironmentVariableW;
+static SOCKET(WSAAPI* pMySocket)(int af, int type, int protocol) = socket;
+static SOCKET(WSAAPI* pMyWSASocketW)(int af, int type, int protocol, LPWSAPROTOCOL_INFOW lpProtocolInfo, GROUP g, DWORD dwFlags) = WSASocketW;
 
-DWORD WINAPI MyGetEnvironmentVariableW(
-	LPCWSTR lpName,
-	LPWSTR lpBuffer,
-	DWORD nSize) {
+static int (WSAAPI* pMySend)(SOCKET s, const char* buf, int len, int flags) = send;
+static int (WSAAPI* pMyRecv)(SOCKET s, char* buf, int len, int flags) = recv;
+static int (WSAAPI* pMyConnect)(SOCKET s, const struct sockaddr* name, int namelen) = connect;
 
-	wchar_t* name = new wchar_t[512];
-	swprintf_s(name, 512, L"%s", lpName);
-	//OutputDebugStringW(name);
+static int (WSAAPI* pMyWSASend)(
+	SOCKET s,
+	LPWSABUF lpBuffers,
+	DWORD dwBufferCount,
+	LPDWORD lpNumberOfBytesSent,
+	DWORD dwFlags,
+	LPWSAOVERLAPPED lpOverlapped,
+	LPWSAOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine
+	) = WSASend;
 
-	if (_hasProxy) {
-		if (lstrcmpiW(name, L"HTTPS_PROXY") == 0 ||
-			lstrcmpiW(name, L"https_proxy") == 0 ||
-			lstrcmpiW(name, L"HTTP_PROXY") == 0 ||
-			lstrcmpiW(name, L"http_proxy") == 0) {
-			wmemcpy(lpBuffer, _proxy, lstrlenW(_proxy));
-			delete[] name;
-			return lstrlenW(_proxy);
-		}
-	}
+static int (WSAAPI* pMyWSARecv)(
+	SOCKET s,
+	LPWSABUF lpBuffers,
+	DWORD dwBufferCount,
+	LPDWORD lpNumberOfBytesRecvd,
+	LPDWORD lpFlags,
+	LPWSAOVERLAPPED lpOverlapped,
+	LPWSAOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine
+	) = WSARecv;
 
-	delete[] name;
-
-	return pMyGetEnvironmentVariableW(lpName, lpBuffer, nSize);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 static BOOL(WINAPI* pMyCreateProcessW)(
 	LPCWSTR lpApplicationName,
@@ -257,6 +242,37 @@ static BOOL(WINAPI* pMyCreateProcessW)(
 	LPPROCESS_INFORMATION lpProcessInformation
 	) = CreateProcessW;
 
+wchar_t g_proxy[512];
+bool g_hasProxy;
+SocketManager g_socketManager;
+ProxyInfo g_configProxy;
+bool g_updaterProcess = false;
+
+//updater.node的代理获取方法
+DWORD WINAPI MyGetEnvironmentVariableW(
+	LPCWSTR lpName,
+	LPWSTR lpBuffer,
+	DWORD nSize) {
+
+	if (g_updaterProcess && g_hasProxy) {
+		if (lstrcmpiW(lpName, L"HTTPS_PROXY") == 0 ||
+			lstrcmpiW(lpName, L"https_proxy") == 0 ||
+			lstrcmpiW(lpName, L"HTTP_PROXY") == 0 ||
+			lstrcmpiW(lpName, L"http_proxy") == 0) {
+
+			std::wstring wProxy = Utf8toWide(g_configProxy.GetProxyForceHttp().c_str());
+			OutputDebugStringW(wProxy.c_str());
+			wmemcpy(lpBuffer, wProxy.c_str(), lstrlenW(wProxy.c_str()));
+
+			return lstrlenW(wProxy.c_str());
+		}
+	}
+
+	return pMyGetEnvironmentVariableW(lpName, lpBuffer, nSize);
+}
+
+
+//discord.exe的代理获取方法
 BOOL WINAPI MyCreateProcessW(
 	LPCWSTR lpApplicationName,
 	LPWSTR lpCommandLine,
@@ -272,12 +288,12 @@ BOOL WINAPI MyCreateProcessW(
 	auto cmd = std::wstring(lpCommandLine);
 	std::string::size_type idx = cmd.find(L"\\Discord.exe");
 
-	if (_hasProxy && idx != std::string::npos) {
+	if (g_hasProxy && idx != std::string::npos) {
 		std::string::size_type proxyServerIdx = cmd.find(L"--proxy-server");
 		if (proxyServerIdx == std::string::npos) {
 			//添加参数
 			cmd.append(L" --proxy-server==");
-			cmd.append(_proxy);
+			cmd.append(Utf8toWide(g_configProxy.GetProxyNoAuth().c_str()));
 			return pMyCreateProcessW(lpApplicationName, (LPWSTR)cmd.c_str(), lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);;
 		}
 	}
@@ -285,26 +301,216 @@ BOOL WINAPI MyCreateProcessW(
 	return pMyCreateProcessW(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);;
 }
 
+bool ParseHttpConnect(const char* buf, int len, std::string& host, int& port) {
+	std::string data(buf, len);
+	std::regex connectRegex("CONNECT ([^:]*):(\\d+)");
+	std::smatch match;
+
+	if (std::regex_search(data, match, connectRegex)) {
+		host = match[1].str();
+		port = std::stoi(match[2].str());
+		return true;
+	}
+	return false;
+}
+
+bool SendHttpToSocks(SOCKET sock, const char* buf, int len, int flags) {
+	std::string host;
+	int port;
+
+	if (!ParseHttpConnect(buf, len, host, port)) {
+		return false;
+	}
+
+	// SOCKS5握手，支持No Auth和Username/Password Auth
+	char handshake[] = { 0x05, 0x02, 0x00, 0x02 };
+	if (pMySend(sock, handshake, sizeof(handshake), flags) != sizeof(handshake)) {
+		return false;
+	}
+
+	// 等待服务器响应
+	fd_set readSet;
+	timeval timeout = { 10, 0 };
+	FD_ZERO(&readSet);
+	FD_SET(sock, &readSet);
+
+	if (select(0, &readSet, nullptr, nullptr, &timeout) != 1) {
+		return false;
+	}
+
+	char response[2];
+	if (pMyRecv(sock, response, 2, 0) != 2) {
+		return false;
+	}
+
+	if (response[0] != 0x05) {
+		return false;
+	}
+
+	if (response[1] == 0x00) {
+		//LogDebug("Socks No Authentication Required");
+	}
+	else if (response[1] == 0x02) {
+
+		// Chrome本身不支持认证，所以此实现无意义
+		std::string username = g_configProxy.username;
+		std::string password = g_configProxy.password;
+
+		if (username.length() > 255 || password.length() > 255) {
+			return false;
+		}
+
+		std::vector<char> authRequest;
+		authRequest.push_back(0x01); // Version
+		authRequest.push_back(static_cast<char>(username.length()));
+		authRequest.insert(authRequest.end(), username.begin(), username.end());
+		authRequest.push_back(static_cast<char>(password.length()));
+		authRequest.insert(authRequest.end(), password.begin(), password.end());
+
+		if (pMySend(sock, authRequest.data(), authRequest.size(), flags) != authRequest.size()) {
+			return false;
+		}
+
+		char authResponse[2];
+		if (pMyRecv(sock, authResponse, 2, 0) != 2) {
+			return false;
+		}
+		
+		if (authResponse[0] != 0x01 || authResponse[1] != 0x00) {
+			// 认证失败
+			return false;
+		}
+	}
+	else {
+		// 不支持的认证模式
+		return false;
+	}
+
+	// 发送连接请求
+	std::vector<char> request;
+	request.push_back(0x05); // VER
+	request.push_back(0x01); // CMD: CONNECT
+	request.push_back(0x00); // RSV
+	request.push_back(0x03); // ATYP: DOMAIN
+	request.push_back(static_cast<char>(host.length())); // Domain length
+	request.insert(request.end(), host.begin(), host.end()); // Domain
+	request.push_back(static_cast<char>(port >> 8)); // Port high byte
+	request.push_back(static_cast<char>(port & 0xFF)); // Port low byte
+
+	if (pMySend(sock, request.data(), request.size(), flags) != request.size()) {
+		return false;
+	}
+
+	LogDebug("SendHttpToSocks#7");
+
+	g_socketManager.SetFakeHttpProxyFlag(sock);
+	return true;
+}
+
+SOCKET WSAAPI MySocket(int af, int type, int protocol) {
+	SOCKET sock = pMySocket(af, type, protocol);
+	if (!g_updaterProcess) {
+		return sock;
+	}
+	if (sock != INVALID_SOCKET) {
+		g_socketManager.Add(sock, type, protocol);
+	}
+	return sock;
+}
+
+SOCKET WSAAPI MyWSASocketW(int af, int type, int protocol,
+	LPWSAPROTOCOL_INFOW lpProtocolInfo, GROUP g, DWORD dwFlags) {
+	SOCKET sock = pMyWSASocketW(af, type, protocol, lpProtocolInfo, g, dwFlags);
+
+	if (!g_updaterProcess) {
+		return sock;
+	}
+
+	if (sock != INVALID_SOCKET) {
+		g_socketManager.Add(sock, type, protocol);
+	}
+	return sock;
+}
+
+
+int WSAAPI MySend(SOCKET s, const char* buf, int len, int flags) {
+	if (g_updaterProcess) {
+		SocketManagerItem item;
+		if (g_socketManager.IsFirstSend(s, item)) {
+			if (item.isTcp && g_configProxy.isSocks5) {
+				if (SendHttpToSocks(s, buf, len, flags)) {
+					return len;
+				}
+			}
+		}
+	}
+
+	return pMySend(s, buf, len, flags);
+}
+
+int WSAAPI MyRecv(SOCKET s, char* buf, int len, int flags) {
+	int ret = pMyRecv(s, buf, len, flags);
+	if (!g_updaterProcess) {
+		return ret;
+	}
+
+	if (ret > 0 && g_socketManager.ClearFakeHttpProxyFlag(s)) {
+		if (ret >= 10) {
+			if (memcmp(buf, "\x05\x00\x00", 3) == 0) {
+				const char* httpResponse =
+					"HTTP/1.1 200 Connection Established\r\n\r\n";
+				size_t respLen = strlen(httpResponse);
+				if (respLen <= len) {
+					memcpy(buf, httpResponse, respLen);
+					return respLen;
+				}
+			}
+		}
+	}
+
+	return ret;
+}
+
+
+void OnModuleLoaded(LPCWSTR moduleName) {
+	//LogDebug(std::wstring(L"OnModuleLoaded " + std::wstring(moduleName)).c_str());
+	
+	std::wstring moduleNameStr(moduleName);
+	const wchar_t* endsWith = L"\\updater.node";
+
+	if (moduleNameStr.length() >= wcslen(endsWith) &&
+		moduleNameStr.compare(moduleNameStr.length() - wcslen(endsWith), wcslen(endsWith), endsWith) == 0) {
+		LogDebug(L"updater.node loaded");
+		g_updaterProcess = true;
+		//仅在updater中支持socks5，性能优化，chrome本身已支持，所以无需调用相关代码
+	}
+}
+
+HMODULE WINAPI MyGetModuleHandleW(LPCWSTR lpModuleName) {
+	HMODULE hModule = pMyGetModuleHandleW(lpModuleName);
+	if (hModule && lpModuleName) {
+		OnModuleLoaded(lpModuleName);
+	}
+	return hModule;
+}
+
+HMODULE WINAPI MyLoadLibraryW(LPCWSTR lpLibFileName) {
+	HMODULE hModule = pMyLoadLibraryW(lpLibFileName);
+	if (hModule && lpLibFileName) {
+		OnModuleLoaded(lpLibFileName);
+	}
+	return hModule;
+}
+
+HMODULE WINAPI MyLoadLibraryExW(LPCWSTR lpLibFileName, HANDLE hFile, DWORD dwFlags) {
+	HMODULE hModule = pMyLoadLibraryExW(lpLibFileName, hFile, dwFlags);
+	if (hModule && lpLibFileName) {
+		OnModuleLoaded(lpLibFileName);
+	}
+	return hModule;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-std::wstring Utf8toUtf16(const std::string& str) {
-	if (str.empty())
-		return std::wstring();
-
-	size_t charsNeeded = ::MultiByteToWideChar(CP_UTF8, 0,
-		str.data(), (int)str.size(), NULL, 0);
-	if (charsNeeded == 0)
-		throw std::runtime_error("Failed converting UTF-8 string to UTF-16");
-
-	std::vector<wchar_t> buffer(charsNeeded);
-	int charsConverted = ::MultiByteToWideChar(CP_UTF8, 0,
-		str.data(), (int)str.size(), &buffer[0], buffer.size());
-	if (charsConverted == 0)
-		throw std::runtime_error("Failed converting UTF-8 string to UTF-16");
-
-	return std::wstring(&buffer[0], charsConverted);
-}
 
 BOOL APIENTRY LoadProxyConfig() {
 
@@ -322,9 +528,10 @@ BOOL APIENTRY LoadProxyConfig() {
 		if (std::regex_match(cmd, matchResult, regexp_to_match)) {
 			if (matchResult.size() == 4) {
 				//OutputDebugStringA(matchResult[2].str().c_str());
-				auto wide = Utf8toUtf16(matchResult[2].str());
-				wmemcpy(_proxy, wide.c_str(), wide.size());
-				_hasProxy = true;
+				auto wide = Utf8toWide(matchResult[2].str());
+				wmemcpy(g_proxy, wide.c_str(), wide.size());
+				g_configProxy.Parse(matchResult[2].str());
+				g_hasProxy = true;
 			}
 		}
 		else {
@@ -335,15 +542,11 @@ BOOL APIENTRY LoadProxyConfig() {
 
 		//另一个配置方案，暂时不使用
 		const wchar_t* lpPath = L".\\proxy.ini";
-		auto result = GetPrivateProfileStringW(L"Config", L"Proxy", L"", _proxy, 512, lpPath);
-		_hasProxy = result != 0;
-		
-		//wchar_t* log = new wchar_t[512];
-		//swprintf_s(log, 512, L"读取代理配置 %d %s", _hasProxy, _proxy);
-		//OutputDebugStringW(log);
-		//delete[] log;
+		auto result = GetPrivateProfileStringW(L"Config", L"Proxy", L"", g_proxy, 512, lpPath);
+		g_hasProxy = result != 0;
 	}
-	return _hasProxy;
+
+	return g_hasProxy;
 }
 
 
@@ -352,6 +555,17 @@ BOOL APIENTRY InstallHook() {
 	DetourUpdateThread(GetCurrentThread());
 	DetourAttach((void**)&pMyGetEnvironmentVariableW, MyGetEnvironmentVariableW);
 	DetourAttach((void**)&pMyCreateProcessW, MyCreateProcessW);
+
+	DetourAttach((void**)&pMySocket, MySocket);
+	DetourAttach((void**)&pMyWSASocketW, MyWSASocketW);
+
+	DetourAttach((void**)&pMySend, MySend);
+	DetourAttach((void**)&pMyRecv, MyRecv);
+
+	DetourAttach((void**)&pMyGetModuleHandleW, MyGetModuleHandleW);
+	DetourAttach((void**)&pMyLoadLibraryW, MyLoadLibraryW);
+	DetourAttach((void**)&pMyLoadLibraryExW, MyLoadLibraryExW);
+
 	LONG ret = DetourTransactionCommit();
 	return ret == NO_ERROR;
 }
@@ -361,10 +575,20 @@ BOOL APIENTRY UnInstallHook() {
 	DetourUpdateThread(GetCurrentThread());
 	DetourDetach((void**)&pMyGetEnvironmentVariableW, MyGetEnvironmentVariableW);
 	DetourDetach((void**)&pMyCreateProcessW, MyCreateProcessW);
+
+	DetourDetach((void**)&pMySocket, MySocket);
+	DetourDetach((void**)&pMyWSASocketW, MyWSASocketW);
+
+	DetourDetach((void**)&pMySend, MySend);
+	DetourDetach((void**)&pMyRecv, MyRecv);
+
+	DetourDetach((void**)&pMyGetModuleHandleW, MyGetModuleHandleW);
+	DetourDetach((void**)&pMyLoadLibraryW, MyLoadLibraryW);
+	DetourDetach((void**)&pMyLoadLibraryExW, MyLoadLibraryExW);
+
 	LONG ret = DetourTransactionCommit();
 	return ret == NO_ERROR;
 }
-
 
 
 
