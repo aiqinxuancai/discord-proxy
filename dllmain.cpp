@@ -108,7 +108,7 @@ PVOID g_VerQueryValueW;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-namespace AheadLib
+namespace DiscordProxy
 {
 	HMODULE m_hModule = NULL;	// 原始模块句柄
 	DWORD m_dwReturn[17] = { 0 };	// 原始函数返回地址
@@ -132,7 +132,7 @@ namespace AheadLib
 
 			if (!dontExit) {
 				wsprintf(tzTemp, TEXT("无法找到函数 %hs，程序无法正常运行。"), pszProcName);
-				MessageBox(NULL, tzTemp, TEXT("AheadLib"), MB_ICONSTOP);
+				MessageBox(NULL, tzTemp, TEXT("DiscordProxy"), MB_ICONSTOP);
 				ExitProcess(-2);
 			}
 		}
@@ -193,8 +193,10 @@ namespace AheadLib
 		}
 	}
 }
-using namespace AheadLib;
+using namespace DiscordProxy;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 
 static HMODULE(WINAPI* pMyGetModuleHandleW)(LPCWSTR lpModuleName) = GetModuleHandleW;
 static HMODULE(WINAPI* pMyLoadLibraryW)(LPCWSTR lpLibFileName) = LoadLibraryW;
@@ -247,6 +249,7 @@ bool g_hasProxy;
 SocketManager g_socketManager;
 ProxyInfo g_configProxy;
 bool g_updaterProcess = false;
+HMODULE g_hModule = NULL;
 
 //updater.node的代理获取方法
 DWORD WINAPI MyGetEnvironmentVariableW(
@@ -293,10 +296,36 @@ BOOL WINAPI MyCreateProcessW(
 	if (g_hasProxy && (idx != std::string::npos || canaryIdx != std::string::npos)) {
 		std::string::size_type proxyServerIdx = cmd.find(L"--proxy-server");
 		if (proxyServerIdx == std::string::npos) {
-			//添加参数
 			cmd.append(L" --proxy-server==");
 			cmd.append(Utf8toWide(g_configProxy.GetProxyNoAuth().c_str()));
-			return pMyCreateProcessW(lpApplicationName, (LPWSTR)cmd.c_str(), lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);;
+
+
+			//LogDebug(lpApplicationName);
+			//LogDebug(lpCommandLine);
+			//LogDebug(targetPath.c_str());
+
+			if (lpApplicationName != nullptr) {
+				std::wstring targetPath = lpApplicationName;
+				size_t lastSlash = targetPath.find_last_of(L"\\/");
+				std::wstring targetDir;
+				if (lastSlash != std::wstring::npos) {
+					targetDir = targetPath.substr(0, lastSlash);
+				}
+
+				std::wstring targetVersionDll = targetDir + L"\\version.dll";
+				//LogDebug(targetVersionDll.c_str());
+				DWORD fileAttrs = GetFileAttributesW(targetVersionDll.c_str());
+				if (fileAttrs == INVALID_FILE_ATTRIBUTES) {
+					wchar_t currentDllPath[MAX_PATH];
+					GetModuleFileNameW(g_hModule, currentDllPath, MAX_PATH);
+					CopyFileW(currentDllPath, targetVersionDll.c_str(), FALSE);
+				}
+				else {
+
+				}
+			}
+
+			return pMyCreateProcessW(lpApplicationName, (LPWSTR)cmd.c_str(), lpProcessAttributes, lpThreadAttributes, bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
 		}
 	}
 
@@ -600,6 +629,7 @@ BOOL WINAPI DllMain(HMODULE hModule, DWORD dwReason, PVOID pvReserved)
 {
 	if (dwReason == DLL_PROCESS_ATTACH)
 	{
+		g_hModule = hModule;
 		DisableThreadLibraryCalls(hModule);
 		bool result = Load();
 		LoadProxyConfig();
