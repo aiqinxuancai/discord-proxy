@@ -4,16 +4,24 @@
 
 原理是version.dll会在Discord.exe启动时跟随加载，读取并存储命令行中的代理地址(http....)，并且拦截Discord的updater.node模块读取环境变量的操作，将命令行中的代理地址直接返回，这样就无需修改系统的环境变量。
 
-## 开始使用
+## 如何使用
 
-### 方法1
-使用项目[DiscordProxyStart](https://github.com/aiqinxuancai/DiscordProxyStart)自动复制version.dll并启动Discord（**实验**）
+### 快速开始
+[DiscordProxyStart](https://github.com/aiqinxuancai/DiscordProxyStart)  / [Release](https://github.com/aiqinxuancai/DiscordProxyStart/releases)
 
-下载：[Release](https://github.com/aiqinxuancai/DiscordProxyStart/releases)
+使用此项目自动复制version.dll并启动Discord，并可支持带有认证的代理地址
+```
+http://127.0.0.1:1080
+http://user:password@127.0.0.1:1080
+socks://127.0.0.1:1080
+socks5://127.0.0.1:1080
+socks5://user:password@127.0.0.1:1080
+...
+```
 
 ---
 
-### 方法2
+### 手动配置
 手动下载release.zip并解压version.dll
 
 https://github.com/aiqinxuancai/discord-proxy/releases
@@ -35,7 +43,7 @@ https://github.com/aiqinxuancai/discord-proxy/releases
 ```
 如此就设置完毕了，使用桌面快捷方式运行即可。
 
-
+**注意：手动配置仅可支持无需验证的http及socks5协议。**
 
 ---
 
@@ -49,5 +57,3 @@ C:\Users\xxxxxx\AppData\Local\Discord\Update.exe --processStart Discord.exe --a=
 #### **注意代理规则**
 如果用的**clash代理**，请注意下代理规则，检查discord相关域名流量是否通过代理，v2、ss、ssr为指定端口全代所以不用另外做什么。
 
-#### **不支持Socks代理**
-目前不支持socks代理，请使用http代理，如果实在是需要，可以用此项目将socks代理转为http代理：https://github.com/ginuerzh/gost
