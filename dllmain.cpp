@@ -502,6 +502,16 @@ int WSAAPI MyRecv(SOCKET s, char* buf, int len, int flags) {
 	return ret;
 }
 
+BOOL APIENTRY InstallWsHook() {
+	DetourTransactionBegin();
+	DetourUpdateThread(GetCurrentThread());
+	DetourAttach((void**)&pMySocket, MySocket);
+	DetourAttach((void**)&pMyWSASocketW, MyWSASocketW);
+	DetourAttach((void**)&pMySend, MySend);
+	DetourAttach((void**)&pMyRecv, MyRecv);
+	LONG ret = DetourTransactionCommit();
+	return ret == NO_ERROR;
+}
 
 void OnModuleLoaded(LPCWSTR moduleName) {
 	//LogDebug(std::wstring(L"OnModuleLoaded " + std::wstring(moduleName)).c_str());
@@ -509,11 +519,17 @@ void OnModuleLoaded(LPCWSTR moduleName) {
 	std::wstring moduleNameStr(moduleName);
 	const wchar_t* endsWith = L"\\updater.node";
 
-	if (moduleNameStr.length() >= wcslen(endsWith) &&
+	if (g_updaterProcess == false && moduleNameStr.length() >= wcslen(endsWith) &&
 		moduleNameStr.compare(moduleNameStr.length() - wcslen(endsWith), wcslen(endsWith), endsWith) == 0) {
 		LogDebug(L"updater.node loaded");
 		g_updaterProcess = true;
 		//仅在updater中支持socks5，性能优化，chrome本身已支持，所以无需调用相关代码
+
+		//在此hook ws2_32.dll的相关函数
+		if (g_configProxy.isSocks5) {
+			InstallWsHook();
+		}
+		
 	}
 }
 
@@ -580,23 +596,14 @@ BOOL APIENTRY LoadProxyConfig() {
 	return g_hasProxy;
 }
 
-
 BOOL APIENTRY InstallHook() {
 	DetourTransactionBegin();
 	DetourUpdateThread(GetCurrentThread());
 	DetourAttach((void**)&pMyGetEnvironmentVariableW, MyGetEnvironmentVariableW);
 	DetourAttach((void**)&pMyCreateProcessW, MyCreateProcessW);
-
-	DetourAttach((void**)&pMySocket, MySocket);
-	DetourAttach((void**)&pMyWSASocketW, MyWSASocketW);
-
-	DetourAttach((void**)&pMySend, MySend);
-	DetourAttach((void**)&pMyRecv, MyRecv);
-
-	DetourAttach((void**)&pMyGetModuleHandleW, MyGetModuleHandleW);
 	DetourAttach((void**)&pMyLoadLibraryW, MyLoadLibraryW);
 	DetourAttach((void**)&pMyLoadLibraryExW, MyLoadLibraryExW);
-
+	DetourAttach((void**)&pMyGetModuleHandleW, MyGetModuleHandleW);
 	LONG ret = DetourTransactionCommit();
 	return ret == NO_ERROR;
 }
