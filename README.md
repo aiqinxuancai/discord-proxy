@@ -15,7 +15,7 @@
 
 推荐使用配套的启动器项目 [DiscordProxyStart](https://github.com/aiqinxuancai/DiscordProxyStart)。
 
-该工具会自动下载并放置 `version.dll`，并提供图形化界面来启动 Discord 和配置代理。支持带认证的代理地址，例如：
+该工具会自动放置 `version.dll`并启动 Discord ，支持带认证的代理地址，例如：
 
 ```text
 http://127.0.0.1:1080
@@ -24,6 +24,8 @@ socks://127.0.0.1:1080
 socks5://127.0.0.1:1080
 socks5://user:password@127.0.0.1:1080
 ```
+
+**具体配置方法请阅读其项目README。**
 
 **[➡️ 前往 DiscordProxyStart 发布页面](https://github.com/aiqinxuancai/DiscordProxyStart/releases)**
 
